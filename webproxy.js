@@ -2,6 +2,10 @@
  * a simple HTTP proxy server
  * tested with simple GET request only
  * (c) Dick Tang
+ *
+ * Known issue:
+ * (i)   No caching
+ * (ii)  Not able to connect another site while reusing the same channel
  */
 
 var net = require('net');
@@ -21,7 +25,7 @@ net.createServer(
           if (/\d+/.test(remote_host[2])) connect_port=remote_host[2];
           else connect_port=80;
 
-          var remote = net.connect({host:connect_host,port:connect_port});
+          remote = net.connect({host:connect_host,port:connect_port});
           console.log("connected to " + connect_host + ":" + connect_port);
 
           remote.on('connect', function(){
@@ -29,6 +33,13 @@ net.createServer(
             buf=new Buffer(0);
             c.pipe(remote);
             remote.pipe(c);
+	    
+            c.on('end', function(){
+              remote.end();
+            });
+            remote.on('end', function(){
+              c.end();
+            });
           });
 
           remote.on('error', function(e){
