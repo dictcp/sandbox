@@ -24,14 +24,14 @@ net.createServer(
           var remote = net.connect({host:connect_host,port:connect_port});
           console.log("connected to " + connect_host + ":" + connect_port);
 
-          remote.on('connect', function(remote){
+          remote.on('connect', function(){
             remote.write(buf);
             buf=new Buffer(0);
             c.pipe(remote);
             remote.pipe(c);
           });
 
-          remote.on('error', function(remote){
+          remote.on('error', function(e){
             console.log("error, disconnecting");
             c.end();
           });
