@@ -1,8 +1,9 @@
+#ifndef _LINUX_LIST_H
 #ifndef __SKIP_LIST_H
 #define __SKIP_LIST_H
 
 #ifndef __SKIP_LIST_H_LEVEL
-#define __SKIP_LIST_H_LEVEL 10
+#define __SKIP_LIST_H_LEVEL 5
 #endif
 
 /* This file is from Linux Kernel (include/linux/list.h) 
@@ -13,12 +14,29 @@
 
 /*
  * Simple doubly linked skiplist implementation.
- * by Dick Tang (tangcp _at_ cse.cuhk.edu.hk)
+ * by Dick Tang (tangcp _at_ cse.cuhk.edu.hk, dick.tang _at_ ymail.com)
+ * 
+ * Reference
+ * Pugh et al., Skip lists: a probabilistic alternative to balanced trees, 
+ * Communications of the ACM, Volume 33 Issue 6
  * 
  * It is recommended to use skiplist function in order not 
  * to break the skiplist structure. The related functions
  * are marked with "(skiplist_fcn)".
+ * Use use the sortingadd, sortedadd, list_safedel_* instead of 
+ * alternatives.
  *
+ * The default max level is 5. You can redefine it before include. eg:
+ * 
+ * #define __SKIP_LIST_H_LEVEL 10
+ * #include "kskiplist.h"
+ *
+ * While __SKIP_LIST_H_LEVEL == 1, it is equivalent to the linux 
+ * double-linkd list.
+ *
+ * The skiplist cannot be with the linux double-linked list 
+ * together.
+ * 
  * Some of the internal functions ("__xxx") are useful when
  * manipulating whole lists rather than single entries, as
  * sometimes we already know the next/prev entries and we can
@@ -88,14 +106,14 @@ static inline void list_add_tail(struct list_head *new, struct list_head *head)
 }
 
 /**
- * list_searchnear - search an near entry with specific key (skiplist_fcn)
+ * list_seek - search an near entry with specific key (skiplist_fcn)
  * @head: list head to query
  * @key: the query key
  *
  * Taking advantage of skiplist sturct, do a quick near-key-based search.
- * Return the largest-key entry with not larger than the target key.
+ * Return the largest-key entry with less than the target key.
  */
-static inline struct list_head *list_searchnear(struct list_head *head, unsigned long long key)
+static inline struct list_head *list_seek(struct list_head *head, unsigned long long key)
 {
 	unsigned long long *level = &(head->key);
 	struct list_head *header=head;
@@ -106,7 +124,21 @@ static inline struct list_head *list_searchnear(struct list_head *head, unsigned
 		}
 		n--;
 	} while (n>=0);
-	if (head->next->key==key) head=head->next; //while??
+	return head; 
+}
+
+/**
+ * list_searchnear - search an near entry with specific key (skiplist_fcn) (obsolete)
+ * @head: list head to query
+ * @key: the query key
+ *
+ * Taking advantage of skiplist sturct, do a quick near-key-based search.
+ * Return the largest-key entry with not larger than the target key.
+ */
+static inline struct list_head *list_searchnear(struct list_head *head, unsigned long long key)
+{
+  head = list_seek(head, key);
+	while (head->next->key==key) head=head->next;
 	return head; 
 }
 
@@ -120,15 +152,7 @@ static inline struct list_head *list_searchnear(struct list_head *head, unsigned
  */
 static inline struct list_head *list_search(struct list_head *head, unsigned long long key)
 {
-	unsigned long long *level = &(head->key);
-	struct list_head *header=head;
-	int n = *level;
-	do {
-		while (head->forward[n]!=header&&head->forward[n]->key<key) {
-			head=head->forward[n];
-		}
-		n--;
-	} while (n>=0);
+  head = list_seek(head, key);
 	head=head->next;
 	if (head->key==key)
 		return head; 
@@ -272,6 +296,38 @@ static inline void list_safedel_by_head(struct list_head *head, struct list_head
 		for (int i=1;i<*level;i++) if (head->forward[i]==head->next) update[i]=head;
 		head=head->next;
 	}
+
+	if (1) {
+		int i;
+		for(i=1;i<=*level;i++) {
+			if (update[i]->forward[i] != head) break;
+			update[i]->forward[i]=head->forward[i];
+		}
+		list_del(head);
+		while (*level>0&&(header->forward[*level]==header)) --*level;
+	}
+
+}
+
+/**
+ * list_safedel_by_value - deletes entry from list, with handling the skiplist metadata (skiplist_fcn)
+ * @head: the list.
+ * @node: the element to delete from the list.
+ */
+static inline void list_safedel_by_val(struct list_head *head, unsigned long long key)
+{
+	unsigned long long *level = &(head->key);
+	struct list_head *header=head;
+	
+	struct list_head *update[__SKIP_LIST_H_LEVEL];
+	int n = *level;
+	do {
+		while (head->forward[n]!=header&&head->forward[n]->key<key) {
+			head=head->forward[n];
+		}
+		update[n]=head;
+		n--;
+	} while (n>=0);
 
 	if (head->key==key) {
 		int i;
@@ -428,4 +484,5 @@ static inline void list_splice_init(struct list_head *list,
 	     &pos->member != (head); 					\
 	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
 
+#endif
 #endif
