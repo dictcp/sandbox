@@ -1,0 +1,14 @@
+w_metadata foxitreader43 apps \
+    title="Foxit Reader 4.3" \
+    publisher="Foxit Software" \
+    year="2011" \
+    media="download" \
+    file1="FoxitReader431_enu_Setup.exe" \
+    installed_exe1="$W_PROGRAMS_X86_WIN/Foxit Softare/Foxit Reader/Foxit Reader.exe"
+
+load_foxitreader43()
+{
+    w_download http://cdn01.foxitsoftware.com/pub/foxit/reader/desktop/win/4.x/4.3/enu/FoxitReader431_enu_Setup.exe 97cc2da0d4f4192ab0d167ded6f5d8e795533bab
+    cd "$W_CACHE/$W_PACKAGE"
+    $WINE FoxitReader431_enu_Setup.exe
+}
