@@ -1,0 +1,16 @@
+#
+# A stupid gnuplot script to build plot of node usage from the summary export of virt-top CSV file
+#
+
+set terminal postscript eps enhanced
+
+set o 'virt-top-cpu.eps'
+plot "virt-top-summary.csv" u 0:2 w l
+
+set o 'virt-top-blk.eps'
+plot "virt-top-summary.csv" u 0:3 w l, "" u 0:4 w l
+
+set o 'virt-top-net.eps'
+plot "virt-top-summary.csv" u 0:5 w l, "" u 0:6 w l
+
+
