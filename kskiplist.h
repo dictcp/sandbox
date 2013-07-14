@@ -6,6 +6,11 @@
 #define __SKIP_LIST_H_LEVEL 5
 #endif
 
+#ifndef __SKIP_LIST_RANDOM_FCN
+#include <stdlib.h>
+#define __SKIP_LIST_RANDOM_FCN ((float)rand()/RAND_MAX)
+#endif
+
 /* This file is from Linux Kernel (include/linux/list.h) 
  * and modified by simply removing hardware prefetching of list items. 
  * Here by copyright, credits attributed to wherever they belong.
@@ -69,14 +74,14 @@ struct list_head {
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
  */
-static inline void __list_add(struct list_head *new,
+static inline void __list_add(struct list_head *newh,
 			      struct list_head *prev,
 			      struct list_head *next)
 {
-	next->prev = new;
-	new->next = next;
-	new->prev = prev;
-	prev->next = new;
+	next->prev = newh;
+	newh->next = next;
+	newh->prev = prev;
+	prev->next = newh;
 }
 
 /**
@@ -87,9 +92,9 @@ static inline void __list_add(struct list_head *new,
  * Insert a new entry after the specified head.
  * This is good for implementing stacks.
  */
-static inline void list_add(struct list_head *new, struct list_head *head)
+static inline void list_add(struct list_head *newh, struct list_head *head)
 {
-	__list_add(new, head, head->next);
+	__list_add(newh, head, head->next);
 }
 
 /**
@@ -100,9 +105,9 @@ static inline void list_add(struct list_head *new, struct list_head *head)
  * Insert a new entry before the specified head.
  * This is useful for implementing queues.
  */
-static inline void list_add_tail(struct list_head *new, struct list_head *head)
+static inline void list_add_tail(struct list_head *newh, struct list_head *head)
 {
-	__list_add(new, head->prev, head);
+	__list_add(newh, head->prev, head);
 }
 
 /**
@@ -137,8 +142,9 @@ static inline struct list_head *list_seek(struct list_head *head, unsigned long 
  */
 static inline struct list_head *list_searchnear(struct list_head *head, unsigned long long key)
 {
+	struct list_head *header=head;
   head = list_seek(head, key);
-	while (head->next->key==key) head=head->next;
+	while (head->next!=header&&head->next->key==key) head=head->next;
 	return head; 
 }
 
@@ -152,12 +158,13 @@ static inline struct list_head *list_searchnear(struct list_head *head, unsigned
  */
 static inline struct list_head *list_search(struct list_head *head, unsigned long long key)
 {
+	struct list_head *header=head;
   head = list_seek(head, key);
 	head=head->next;
-	if (head->key==key)
+	if (head!=header&&head->key==key)
 		return head; 
 	else
-		return NULL;
+		return (struct list_head *) 0;
 }
 
 /*
@@ -168,11 +175,11 @@ static inline struct list_head *list_search(struct list_head *head, unsigned lon
  * Insert a new entry into a specific skiplist head.
  * Note: the new entry will be inserted before the existing entry with the same key
  */
-static inline void list_sortingadd(struct list_head *new, struct list_head *head)
+static inline void list_sortingadd(struct list_head *newh, struct list_head *head)
 {
 	unsigned long long *level = &(head->key);
 	struct list_head *header=head;
-	unsigned long long key = new->key;
+	unsigned long long key = newh->key;
 
 	struct list_head *update[__SKIP_LIST_H_LEVEL];
 	int n = *level;
@@ -185,17 +192,17 @@ static inline void list_sortingadd(struct list_head *new, struct list_head *head
 	} while (n>=0);
 	
 	int i,v=0;
-	while (((float)rand()/RAND_MAX) < 0.25 && v < __SKIP_LIST_H_LEVEL-1) v++;
-	if (v > *level) {
+	while ((__SKIP_LIST_RANDOM_FCN) < 0.25 && v < __SKIP_LIST_H_LEVEL-1) v++;
+	if (v > (int)*level) {
 		for (i=*level+1;i<=v;i++)
 			update[i]=header;
 		*level=v;
 	}
-	for (i=1;i<__SKIP_LIST_H_LEVEL;i++) new->forward[i]=header;
-	__list_add(new, head, head->next);
+	for (i=1;i<__SKIP_LIST_H_LEVEL;i++) newh->forward[i]=header;
+	__list_add(newh, head, head->next);
 	for (i=1;i<=v;i++) {
-		new->forward[i] = update[i]->forward[i];
-		update[i]->forward[i] = new;
+		newh->forward[i] = update[i]->forward[i];
+		update[i]->forward[i] = newh;
 	}
 }
 
@@ -209,7 +216,7 @@ static inline void list_sortingadd(struct list_head *new, struct list_head *head
  * Note: Currectly the implemenation requires a static variable,
  *       therefore the call cannot be reused elsewhere.
  */
-static inline void list_sortedadd(struct list_head *new, struct list_head *head)
+static inline void list_sortedadd(struct list_head *newh, struct list_head *head)
 {
 	unsigned long long *level = &(head->key);
 	struct list_head *header=head;
@@ -232,17 +239,17 @@ static inline void list_sortedadd(struct list_head *new, struct list_head *head)
 	}
 	int i;
 	v=0;
-	while (((float)rand()/RAND_MAX) < 0.25 && v < __SKIP_LIST_H_LEVEL-1) v++;
-	if (v > *level) {
+	while ((__SKIP_LIST_RANDOM_FCN) < 0.25 && v < __SKIP_LIST_H_LEVEL-1) v++;
+	if (v > (int)*level) {
 		for (i=*level+1;i<=v;i++)
 			update[i]=header;
 		*level=v;
 	}
-	for (i=1;i<__SKIP_LIST_H_LEVEL;i++) new->forward[i]=header;
-	__list_add(new, head, head->next);
+	for (i=1;i<__SKIP_LIST_H_LEVEL;i++) newh->forward[i]=header;
+	__list_add(newh, head, head->next);
 	for (i=1;i<=v;i++) {
-		new->forward[i] = update[i]->forward[i];
-		update[i]->forward[i] = new;
+		newh->forward[i] = update[i]->forward[i];
+		update[i]->forward[i] = newh;
 	}
 }
 
@@ -267,16 +274,16 @@ static inline void __list_del(struct list_head *prev, struct list_head *next)
 static inline void list_del(struct list_head *entry)
 {
 	__list_del(entry->prev, entry->next);
-	entry->next = (void *) 0;
-	entry->prev = (void *) 0;
+	entry->next = (struct list_head *) 0;
+	entry->prev = (struct list_head *) 0;
 }
 
 /**
- * list_safedel_by_head - deletes entry from list, with handling the skiplist metadata (skiplist_fcn)
+ * list_safedel - deletes entry from list, with handling the skiplist metadata (skiplist_fcn)
  * @head: the list.
  * @node: the element to delete from the list.
  */
-static inline void list_safedel_by_head(struct list_head *head, struct list_head *node)
+static inline void list_safedel(struct list_head *head, struct list_head *node)
 {
 	unsigned long long *level = &(head->key);
 	struct list_head *header=head;
@@ -293,13 +300,14 @@ static inline void list_safedel_by_head(struct list_head *head, struct list_head
 	} while (n>=0);
 
 	while (node!=head) {
-		for (int i=1;i<*level;i++) if (head->forward[i]==head->next) update[i]=head;
+		int i=1;
+		for (i=1;i<(int)*level;i++) if (head->forward[i]==head->next) update[i]=head;
 		head=head->next;
 	}
 
 	if (1) {
 		int i;
-		for(i=1;i<=*level;i++) {
+		for(i=1;i<=(int)*level;i++) {
 			if (update[i]->forward[i] != head) break;
 			update[i]->forward[i]=head->forward[i];
 		}
@@ -310,35 +318,26 @@ static inline void list_safedel_by_head(struct list_head *head, struct list_head
 }
 
 /**
+ * list_safedel_by_head - deletes entry from list, with handling the skiplist metadata (skiplist_fcn)
+ * @head: the list.
+ * @node: the element to delete from the list.
+ */
+static inline void list_safedel_by_head(struct list_head *head, struct list_head *node)
+{
+	list_safedel_by_head(head, node);
+}
+
+/**
  * list_safedel_by_value - deletes entry from list, with handling the skiplist metadata (skiplist_fcn)
  * @head: the list.
  * @node: the element to delete from the list.
  */
 static inline void list_safedel_by_val(struct list_head *head, unsigned long long key)
 {
-	unsigned long long *level = &(head->key);
 	struct list_head *header=head;
-	
-	struct list_head *update[__SKIP_LIST_H_LEVEL];
-	int n = *level;
-	do {
-		while (head->forward[n]!=header&&head->forward[n]->key<key) {
-			head=head->forward[n];
-		}
-		update[n]=head;
-		n--;
-	} while (n>=0);
-
-	if (head->key==key) {
-		int i;
-		for(i=1;i<=*level;i++) {
-			if (update[i]->forward[i] != head) break;
-			update[i]->forward[i]=head->forward[i];
-		}
-		list_del(head);
-		while (*level>0&&(header->forward[*level]==header)) --*level;
-	}
-
+	head = list_search(head, key);
+	if (head != (struct list_head *) 0)
+		list_safedel(header, head);
 }
 
 /**
