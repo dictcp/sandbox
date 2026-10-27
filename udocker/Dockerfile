@@ -1,4 +1,4 @@
-FROM debian:13-slim
+FROM debian:12-slim
 
 ARG UDOCKER_VERSION=1.3.17
 

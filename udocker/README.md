@@ -1,6 +1,6 @@
 # udocker
 
-Quick sandbox for running [udocker](https://github.com/indigo-dc/udocker) inside a Debian 13 container.
+Quick sandbox for running [udocker](https://github.com/indigo-dc/udocker) inside a Debian 12 container.
 
 ## Quick host check
 
@@ -14,7 +14,7 @@ curl -fsSL https://raw.githubusercontent.com/dictcp/sandbox/master/udocker/conta
 
 ## What is in this folder
 
-- `Dockerfile`: builds a Debian 13 based image, installs Python and `libfakechroot`, downloads `udocker`, and runs `./udocker install` for the unprivileged `udocker` user.
+- `Dockerfile`: builds a Debian 12 based image, installs Python and `libfakechroot`, downloads `udocker`, and runs `./udocker install` for the unprivileged `udocker` user.
 - `entrypoint.sh`: pulls a container image on demand, creates a temporary udocker container, configures `P1` execution mode, and then runs either the image default command or the command you pass in.
 - `container-check.sh`: host-side diagnostic script to test whether namespaces, mounts, overlayfs, cgroups, seccomp, and related pieces are available.
 
@@ -57,7 +57,7 @@ docker run --rm local/udocker-test alpine:latest /bin/sh -c 'uname -a && id && c
 Run with `bash -c` or `sh -c` explicitly:
 
 ```bash
-docker run --rm local/udocker-test debian:13-slim bash -c 'echo hello from udocker'
+docker run --rm local/udocker-test debian:12-slim bash -c 'echo hello from udocker'
 ```
 
 ## Notes
